@@ -12,18 +12,18 @@ contract Tipping  is ReentrancyGuard, AccessControl {
 
     address public admin;
 
-    mapping(address => mapping(address => uint256)) balances;
+    mapping(address => mapping(IERC20 => uint256)) balances;
 
-    event Deposit(address indexed addr, address payable tokenAddr, uint256 amount);
-    event Withdraw(address indexed addr, address payable tokenAddr, uint256 amount, bytes32 note);
-    event Tip(address indexed from, address indexed to, address payable tokenAddr, uint256 amount, bytes32 note);
+    event Deposit(address indexed addr, IERC20 tokenAddr, uint256 amount);
+    event Withdraw(address indexed addr, IERC20 tokenAddr, uint256 amount, bytes32 note);
+    event Tip(address indexed from, address indexed to, IERC20 tokenAddr, uint256 amount, bytes32 note);
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     // payment accepting function
-    function deposit(address payable _tokenAddr) external payable nonReentrant {
+    function deposit(IERC20 _tokenAddr) external payable nonReentrant {
         require(msg.value > 0, "deposit qty must be positive");
 
         uint256 bal = balances[msg.sender][_tokenAddr];
@@ -34,7 +34,7 @@ contract Tipping  is ReentrancyGuard, AccessControl {
     }
 
     // withdrawal function
-    function withdraw(address _from, address payable _tokenAddr, uint256 _amount, bytes32 _note) external {
+    function withdraw(address _from, IERC20 _tokenAddr, uint256 _amount, bytes32 _note) external {
         require(_amount <= balances[_from][_tokenAddr], "withdrawal amount exceeds max. value");
         
         uint256 bal = balances[_from][_tokenAddr];
@@ -48,12 +48,12 @@ contract Tipping  is ReentrancyGuard, AccessControl {
     }
 
     // view balances function
-    function getBalance(address _addr, address payable _tokenAddr) external view returns(uint256) {
+    function getBalance(address _addr, IERC20 _tokenAddr) external view returns(uint256) {
         return(balances[_addr][_tokenAddr]);
     } 
 
     // tip function
-    function tip(address _from, address _to, address payable _tokenAddr, uint256 _amount, bytes32 _note ) external {
+    function tip(address _from, address _to, IERC20 _tokenAddr, uint256 _amount, bytes32 _note ) external {
         require(_amount <= balances[_from][_tokenAddr], "tip amount exceeds max. value");
 
         require(_from != _to, "from and to must not be same");
