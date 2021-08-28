@@ -12,7 +12,7 @@ contract Tipping  is ReentrancyGuard, AccessControl {
 
     address public admin;
 
-    mapping(address => mapping(IERC20 => uint256)) balances;
+    mapping(address => mapping(address => uint256)) balances;
 
     event Deposit(address indexed addr, IERC20 tokenAddr, uint256 amount);
     event Withdraw(address indexed addr, IERC20 tokenAddr, uint256 amount, bytes32 note);
@@ -23,49 +23,49 @@ contract Tipping  is ReentrancyGuard, AccessControl {
     }
 
     // payment accepting function
-    function deposit(IERC20 _tokenAddr) external payable nonReentrant {
+    function deposit(IERC20 _token) external payable nonReentrant {
         require(msg.value > 0, "deposit qty must be positive");
 
-        uint256 bal = balances[msg.sender][_tokenAddr];
+        uint256 bal = balances[msg.sender][address(_token)];
 
         bal = bal.add(msg.value);
 
-        emit Deposit(msg.sender, _tokenAddr, msg.value);
+        emit Deposit(msg.sender, _token, msg.value);
     }
 
     // withdrawal function
-    function withdraw(address _from, IERC20 _tokenAddr, uint256 _amount, bytes32 _note) external {
-        require(_amount <= balances[_from][_tokenAddr], "withdrawal amount exceeds max. value");
+    function withdraw(address _from, IERC20 _token, uint256 _amount, bytes32 _note) external {
+        uint256 bal = balances[_from][address(_token)];
+        require(_amount <= bal, "withdrawal amount exceeds max. value");
         
-        uint256 bal = balances[_from][_tokenAddr];
         bal = bal.sub(_amount);
 
-        IERC20 tcontract = IERC20(_tokenAddr);                
+        IERC20 tcontract = IERC20(_token);                
         require(tcontract.transfer(_from, _amount), "Don't have enough balance");       // transfer tokens to the withdrawer
         require(tcontract.approve(_from, _amount), "Don't have enough balance");        // approve tokens for the withdrawer to spend
 
-        emit Withdraw(_from, _tokenAddr, _amount, _note);
+        emit Withdraw(_from, _token, _amount, _note);
     }
 
     // view balances function
-    function getBalance(address _addr, IERC20 _tokenAddr) external view returns(uint256) {
-        return(balances[_addr][_tokenAddr]);
+    function getBalance(address _addr, IERC20 _token) external view returns(uint256) {
+        return(balances[_addr][address(_token)]);
     } 
 
     // tip function
-    function tip(address _from, address _to, IERC20 _tokenAddr, uint256 _amount, bytes32 _note ) external {
-        require(_amount <= balances[_from][_tokenAddr], "tip amount exceeds max. value");
+    function tip(address _from, address _to, IERC20 _token, uint256 _amount, bytes32 _note ) external {
+        uint256 bal = balances[_from][address(_token)];
+        require(_amount <= bal, "tip amount exceeds max. value");
 
         require(_from != _to, "from and to must not be same");
 
-        uint256 bal = balances[_from][_tokenAddr];
         bal = bal.sub(_amount);
 
-        IERC20 tcontract = IERC20(_tokenAddr);                
+        IERC20 tcontract = IERC20(_token);                
         require(tcontract.transfer(_to, _amount), "Don't have enough balance");       // transfer tokens to the receiver
         require(tcontract.approve(_to, _amount), "Don't have enough balance");        // approve tokens for the receiver to spend
 
-        emit Tip(_from, _to, _tokenAddr, _amount, _note);
+        emit Tip(_from, _to, _token, _amount, _note);
     }
 
 }
